@@ -1,4 +1,4 @@
-from flask import Flask, render_template,url_for;
+from flask import Flask, render_template,url_for,request,redirect
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime;
@@ -23,18 +23,60 @@ class Todo(db.Model):
     
 
 
-@app.route('/')
+@app.route('/', methods=['POST','GET'])
 def index():
-    return render_template('index.html')
+    if request.method=='POST':
+          task_content=request.form['content']
+          task=Todo(content=task_content)
+          
+          try:
+              db.session.add(task)
+              db.session.commit()
+              return redirect('/')
+          except:
+              return 'We cannot add this task' 
+              
+
+    else:
+        tasks=Todo.query.order_by(Todo.date_created).all()
+        return render_template('index.html',tasks=tasks)
+
 @app.route('/base')
-def base():
+def base(): 
     return render_template('base.html')
 
+@app.route('/delete/<int:id>')
+def delete(id):
+    task_to_delete=Todo.query.get_or_404(id)
+    
+    try:
+        db.session.delete(task_to_delete)
+        db.session.commit()
+        return redirect('/')
+    except:
+        return "Task isn't exist"
+     
 
+@app.route('/update/<int:id>',methods=['GET','POST' ])
+def update(id):
+    task=Todo.query.get_or_404(id)
+    if request.method=="POST":
+        task.content=request.form['content']
+        try:
+            db.session.commit()
+            return redirect('/')
+        except:
+             return 'There was an issue updating your task'
+    
+    else:
+        return render_template('update.html',task=task)
+     
+    
 
 
 
 if __name__== "__main__" :
+ 
  
     app.run (debug=True)
 
